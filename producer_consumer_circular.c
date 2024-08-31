@@ -6,47 +6,47 @@
 #include <unistd.h>
 
 #define N 10                                    //definir el tamaño del buffer
-#define SEM_MUTEX "/sem_mutex"                  //definir el semaforo mutex, para la exclusion mutua
-#define SEM_EMPTY "/sem_empty"                  //definir el semaforo empty, para el calculo de los espacios vacios
-#define SEM_FULL "/sem_full"                    //definir el semaforo full, para el calculo de los espacios llenos
+#define SEM_MUTEX "/sem_mutex"                  //definir el macro del semaforo mutex, para la exclusion mutua
+#define SEM_EMPTY "/sem_empty"                  //definir el macro del semaforo empty, para el calculo de los espacios vacios
+#define SEM_FULL "/sem_full"                    //definir el macro del semaforo full, para el calculo de los espacios llenos
 
-sem_t *mutex;                                   //declarar el semaforo mutex
-sem_t *empty;                                   //declarar el semaforo empty
-sem_t *full;                                    //declarar el semaforo full
+sem_t *mutex;                                   //declarar el puntero de memoria para el semaforo mutex
+sem_t *empty;                                   //declarar el puntero de memoria para el semaforo empty
+sem_t *full;                                    //declarar el puntero de memoria para el semaforo full
 
-int buffer[N];                                  //declarar el buffer
-int in = 0;                                     //declarar la variable para el numero de inseciones, comienza en 0, no hay nada en el buffer todavía
-int out = 0;                                    //declarar la variable para el numero de extracciones, comienza en 0, no se ha retirado nada del buffer todavía
+int buffer[N];                                  //declarar el buffer con el tamaño N (que es 10)
+int in = 0;                                     //declarar el índice de escritura del buffer, comenzando en 0, todavìa no se ha insertado nada
+int out = 0;                                    //declarar el índice de lectura del buffer, que comienza en 0, todavía no se ha consumido nada
 
-void produce_item(int *item);                   //declarar la funcion para producir un item al buffer
+void produce_item(int *item);                   //declarar la funcion para mover el puntero de memoria *item cuando se produce un item
 void enter_item(int item);                      //declarar la funcion para ingresar un item al buffer
-void remove_item(int *item);                    //declarar la funcion para retirar un item del buffer
+void remove_item(int *item);                    //declarar la funcion para mover el puntero de memoria *item cuando se remueve un item
 void consume_item(int item);                    //declarar la funcion para consumir un item del buffer
 void* producer_thread(void *arg);               //declarar la funcion para el hilo del productor
 void* consumer_thread(void *arg);               //declarar la funcion para el hilo del consumidor
 
-void produce_item(int *item)                    //definir la funcion para producir un item al buffer
+void produce_item(int *item)                    //definir la funcion para producir un valor que se le asignará al puntero de memoria *item
 {
-    static int counter = 0;                     //definir la variable counter, comienza en 0
-    *item = counter++;                          //el item es igual a counter, y luego se incrementa en 1, porque es lo que se produjo, todavía no se ha insertado
-}
+    static int counter = 0;                     //definir la variable counter, comienza en 0, para contar los items que se producen, es estática para que su valor se conserve con el tiempo y se pueda incrementar en cada llamada
+    *item = counter++;                          //el valor del puntero *item es igual a counter, el cual se incrementa en 1 con cada llamada, porque es lo que se produjo (todavía no se ha insertado), se le pasa el valor de item por referencia
+}                                               //por ejemplo, en la primera llamada counter es 0 y se incrementa en 1, se le asigna el 1 al puntero item, en la segunda llamada counter es 1 y se incrementa en 1, se le asigna el 2 al item, y así sucesivamente
 
 void enter_item(int item)                       //definir la función para ingresar el item creado al buffer
 {
-    buffer[in] = item;                          //el buffer en la posición in es igual al item que se produjo
-    in = (in + 1) % N;                          //in se incrementa en 1, y se calcula el modulo N, para que si in llega a N, vuelva a 0, este es el efecto circular
-    printf("Produced item: %d\n", item);        //imprimir el item que se produjo
+    buffer[in] = item;                          //inserta el valor [item] en la posición [in] del buffer, en el primer lugar, será el primer item que se produjo, que es 1
+    in = (in + 1) % N;                          //in se incrementa en 1, para insertar el siguiente valor del indice en el siguiente espacio del buffer y se calcula el modulo N, para que el valor de in no sobrepase el tamaño del buffer
+    printf("Se insertó el item: %d\n", item);   //imprimir el item que se insertó
 }
 
 void remove_item(int *item)                     //definir la función para remover un item del buffer
 {
-    *item = buffer[out];                        //el item es igual al buffer en la posición out, esto quiere decir que se va a consumir
-    out = (out + 1) % N;
+    *item = buffer[out];                        //primero se accede al valor del buffer en la posición [out] y se le asigna al puntero *item, para que se pueda consumir, en este momento es 0, por lo tanto se consumirá el primer item que se produjo
+    out = (out + 1) % N;                        //out se incrementa en 1, para que se pueda leer el siguiente valor del buffer y se calcula el modulo N, para que el valor de out no sobrepase el tamaño del buffer
 }
 
 void consume_item(int item)
 {
-    printf("Consumed item: %d\n", item);
+    printf("Se consumió el item: %d\n", item);  //imprimir el item que se consumió
 }
 
 void* producer_thread(void *arg)
