@@ -127,6 +127,7 @@ EL PROBLEMA DE LA SECCION CRITICA
 
 3- bounded waiting: debe existir un límite en el cual los procesos son habilitados a entrar en sus crítical después que hicieron el request para entrar a su crítical o después de que hicieron su entrada. ejemplo: una vez que anduviste en la bici tenes que esperar a que los otros 9 anden en ella para volver a usarla bro
 
+prueba
 
 ESQUEMA DE PROCESO
 
