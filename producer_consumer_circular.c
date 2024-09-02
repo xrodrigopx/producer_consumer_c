@@ -49,65 +49,65 @@ void consume_item(int item)
     printf("Se consumió el item: %d\n", item);  //imprimir el item que se consumió
 }
 
-void* producer_thread(void *arg)
+void* producer_thread(void *arg)                // funcion al puntero del hilo del productor
 {
-    int item;
-    while (1) {
-        produce_item(&item);
-        sem_wait(empty);
-        sem_wait(mutex);
-        enter_item(item);
-        sem_post(mutex);
-        sem_post(full);
-        sleep(1);
+    int item;                                   // tomar el valor de item como referencia
+    while (1) {                                 // bucle para que el productor produzca indefinidamente
+        produce_item(&item);                    // invocar a la funciona para producir un item, se le pasa la dirección de memoria del item como argumento
+        sem_wait(empty);                        // esperar a que el semáforo empty realice el chequeo correspondiente
+        sem_wait(mutex);                        // esperar su turno en el mutex
+        enter_item(item);                       // ingresar item al buffer
+        sem_post(mutex);                        // avisarle al mutex que se realizó una acción
+        sem_post(full);                         // avisarle al full que se realizó una acción
+        sleep(1);                               // dormir 1 segundo, simulando un ambiente de producción
     }
     return NULL;
 }
 
-void* consumer_thread(void *arg)
+void* consumer_thread(void *arg)                // función al puntero del item del consumidor
 {
-    int item;
-    while (1) {
-        sem_wait(full);
-        sem_wait(mutex);
-        remove_item(&item);
-        sem_post(mutex);
-        sem_post(empty);
-        consume_item(item);
-        sleep(1);
+    int item;                                   // tomar el valor del item como referencia, este valor es el que viene del productor
+    while (1) {                                 // bucle infinito para que el consumidor consuma indefinidamente
+        sem_wait(full);                         // espera a que el semáforo full termine de recibir el aviso del productor
+        sem_wait(mutex);                        // espera a su turno en el mutex
+        remove_item(&item);                     // remueve el item publicado en el buffer por el productor
+        sem_post(mutex);                        // avisa al mutex que removió
+        sem_post(empty);                        // avisa al empty para generar un nuevo espacio vacío en el buffer
+        consume_item(item);                     // consume el item que removió del buffer
+        sleep(1);                               // dormir un segundo
     }
     return NULL;
 }
 
-int main()
+int main()                                      // punto de entrada al programa
 {
-    pthread_t prod, cons;
+    pthread_t prod, cons;                       // crear dos hilos vinculados, prod y cons
 
-    // Initialize named semaphores
-    mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);
-    empty = sem_open(SEM_EMPTY, O_CREAT, 0644, N);
-    full = sem_open(SEM_FULL, O_CREAT, 0644, 0);
+    mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);  // definir los semáforos, le pone nombre, lo crea si ya no está creado, le asigna los permisos de RWX, inicializa con 1 este semáforo
+    empty = sem_open(SEM_EMPTY, O_CREAT, 0644, N);  // define el semáforo de empty, igual que el mutex pero teniendo un valor de N(10) indicando que el buffer está vacío en sus 10 espacios
+    full = sem_open(SEM_FULL, O_CREAT, 0644, 0);    // define el semáforo de FULL, indicando que no está lleno en sus 10 espacios, o sea que tiene 0 espacios llenos
 
-    if (mutex == SEM_FAILED || empty == SEM_FAILED || full == SEM_FAILED) {
+    // si algo falla al momento de crear los semáforos se mostratá "sem_open"
+    if (mutex == SEM_FAILED || empty == SEM_FAILED || full == SEM_FAILED) { 
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
 
-    // Create threads
+    // si algo falla durante la creación del hilo del productor
     if (pthread_create(&prod, NULL, producer_thread, NULL) != 0) {
         perror("pthread_create producer");
         exit(EXIT_FAILURE);
     }
+    // si algo falla durante la creación del hilo del consumidor
     if (pthread_create(&cons, NULL, consumer_thread, NULL) != 0) {
         perror("pthread_create consumer");
         exit(EXIT_FAILURE);
     }
+    
+    pthread_join(prod, NULL);                       // función de espera a que el hilo del productor termine para avanzar con el proceso
+    pthread_join(cons, NULL);                       // función de espera a que el hilo del consumidor termine para avanzar con el proceso
 
-    // Wait for threads to finish (they won't in this example)
-    pthread_join(prod, NULL);
-    pthread_join(cons, NULL);
-
-    // Clean up named semaphores
+    // finalizar los hilos cuando el proceso termina, esto nunca ocurrirá naturalmente en el programa.
     sem_close(mutex);
     sem_close(empty);
     sem_close(full);
@@ -115,7 +115,7 @@ int main()
     sem_unlink(SEM_EMPTY);
     sem_unlink(SEM_FULL);
 
-    return 0;
+    return 0;                                       // devolver 0 si el programa se ejecuta sin errores.
 }
 
 /*
@@ -127,14 +127,5 @@ EL PROBLEMA DE LA SECCION CRITICA
 
 3- bounded waiting: debe existir un límite en el cual los procesos son habilitados a entrar en sus crítical después que hicieron el request para entrar a su crítical o después de que hicieron su entrada. ejemplo: una vez que anduviste en la bici tenes que esperar a que los otros 9 anden en ella para volver a usarla bro
 
-prueba
 
-ESQUEMA DE PROCESO
-
-do {
-    entry section               // permiso para entrar la critical
-        critical section        // habiendo entrado en la critical
-    exit section                // saliendo de la critical
-        remainder section       // el remainder
-} while (TRUE);
 */
