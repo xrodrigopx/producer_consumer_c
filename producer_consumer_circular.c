@@ -5,109 +5,109 @@
 #include <semaphore.h>
 #include <unistd.h>
 
-#define N 10                                    //definir el tamaño del buffer
-#define SEM_MUTEX "/sem_mutex"                  //definir el macro del semaforo mutex, para la exclusion mutua
-#define SEM_EMPTY "/sem_empty"                  //definir el macro del semaforo empty, para el calculo de los espacios vacios
-#define SEM_FULL "/sem_full"                    //definir el macro del semaforo full, para el calculo de los espacios llenos
+#define N 10                                    // Definir el tamaño del buffer
+#define SEM_MUTEX "/sem_mutex"                  // Definir el nombre del semáforo mutex, para la exclusión mutua
+#define SEM_EMPTY "/sem_empty"                  // Definir el nombre del semáforo empty, para el conteo de los espacios vacíos
+#define SEM_FULL "/sem_full"                    // Definir el nombre del semáforo full, para el conteo de los espacios llenos
 
-sem_t *mutex;                                   //declarar el puntero de memoria para el semaforo mutex
-sem_t *empty;                                   //declarar el puntero de memoria para el semaforo empty
-sem_t *full;                                    //declarar el puntero de memoria para el semaforo full
+sem_t *mutex;                                   // Declarar el puntero para el semáforo mutex
+sem_t *empty;                                   // Declarar el puntero para el semáforo empty
+sem_t *full;                                    // Declarar el puntero para el semáforo full
 
-int buffer[N];                                  //declarar el buffer con el tamaño N (que es 10)
-int in = 0;                                     //declarar el índice de escritura del buffer, comenzando en 0, todavìa no se ha insertado nada
-int out = 0;                                    //declarar el índice de lectura del buffer, que comienza en 0, todavía no se ha consumido nada
+int buffer[N];                                  // Declarar el buffer con el tamaño N (que es 10)
+int in = 0;                                     // Índice de escritura del buffer, comenzando en 0
+int out = 0;                                    // Índice de lectura del buffer, comenzando en 0
 
-void produce_item(int *item);                   //declarar la funcion para mover el puntero de memoria *item cuando se produce un item
-void enter_item(int item);                      //declarar la funcion para ingresar un item al buffer
-void remove_item(int *item);                    //declarar la funcion para mover el puntero de memoria *item cuando se remueve un item
-void consume_item(int item);                    //declarar la funcion para consumir un item del buffer
-void* producer_thread(void *arg);               //declarar la funcion para el hilo del productor
-void* consumer_thread(void *arg);               //declarar la funcion para el hilo del consumidor
+void produce_item(int *item);                   // Declarar la función para producir un ítem y asignarlo al puntero de memoria *item
+void enter_item(int item);                      // Declarar la función para ingresar un ítem al buffer
+void remove_item(int *item);                    // Declarar la función para remover un ítem del buffer y asignarlo al puntero de memoria *item
+void consume_item(int item);                    // Declarar la función para consumir un ítem del buffer
+void* producer_thread(void *arg);               // Declarar la función para el hilo del productor
+void* consumer_thread(void *arg);               // Declarar la función para el hilo del consumidor
 
-void produce_item(int *item)                    //definir la funcion para producir un valor que se le asignará al puntero de memoria *item
+void produce_item(int *item)                    // Definir la función para producir un valor que se asignará al puntero de memoria *item
 {
-    static int counter = 0;                     //definir la variable counter, comienza en 0, para contar los items que se producen, es estática para que su valor se conserve con el tiempo y se pueda incrementar en cada llamada
-    *item = counter++;                          //el valor del puntero *item es igual a counter, el cual se incrementa en 1 con cada llamada, porque es lo que se produjo (todavía no se ha insertado), se le pasa el valor de item por referencia
-}                                               //por ejemplo, en la primera llamada counter es 0 y se incrementa en 1, se le asigna el 1 al puntero item, en la segunda llamada counter es 1 y se incrementa en 1, se le asigna el 2 al item, y así sucesivamente
+    static int counter = 0;                     // Variable estática para contar los ítems producidos
+    *item = counter++;                          // Asignar el valor de counter al puntero *item y luego incrementar counter
+}                                               // Por ejemplo, en la primera llamada counter es 0 y se incrementa a 1
 
-void enter_item(int item)                       //definir la función para ingresar el item creado al buffer
+void enter_item(int item)                       // Definir la función para ingresar el ítem creado al buffer
 {
-    buffer[in] = item;                          //inserta el valor [item] en la posición [in] del buffer, en el primer lugar, será el primer item que se produjo, que es 1
-    in = (in + 1) % N;                          //in se incrementa en 1, para insertar el siguiente valor del indice en el siguiente espacio del buffer y se calcula el modulo N, para que el valor de in no sobrepase el tamaño del buffer
-    printf("Se insertó el item: %d\n", item);   //imprimir el item que se insertó
+    buffer[in] = item;                          // Insertar el ítem en la posición [in] del buffer
+    in = (in + 1) % N;                          // Incrementar in y usar módulo N para mantenerlo dentro de los límites del buffer
+    printf("Se insertó el ítem: %d\n", item);   // Imprimir el ítem que se insertó
 }
 
-void remove_item(int *item)                     //definir la función para remover un item del buffer
+void remove_item(int *item)                     // Definir la función para remover un ítem del buffer
 {
-    *item = buffer[out];                        //primero se accede al valor del buffer en la posición [out] y se le asigna al puntero *item, para que se pueda consumir, en este momento es 0, por lo tanto se consumirá el primer item que se produjo
-    out = (out + 1) % N;                        //out se incrementa en 1, para que se pueda leer el siguiente valor del buffer y se calcula el modulo N, para que el valor de out no sobrepase el tamaño del buffer
+    *item = buffer[out];                        // Asignar el valor del buffer en la posición [out] al puntero *item
+    out = (out + 1) % N;                        // Incrementar out y usar módulo N para mantenerlo dentro de los límites del buffer
 }
 
 void consume_item(int item)
 {
-    printf("Se consumió el item: %d\n", item);  //imprimir el item que se consumió
+    printf("Se consumió el ítem: %d\n", item);  // Imprimir el ítem que se consumió
 }
 
-void* producer_thread(void *arg)                // funcion al puntero del hilo del productor
+void* producer_thread(void *arg)                // Función para el hilo del productor
 {
-    int item;                                   // tomar el valor de item como referencia
-    while (1) {                                 // bucle para que el productor produzca indefinidamente
-        produce_item(&item);                    // invocar a la funciona para producir un item, se le pasa la dirección de memoria del item como argumento
-        sem_wait(empty);                        // esperar a que el semáforo empty realice el chequeo correspondiente
-        sem_wait(mutex);                        // esperar su turno en el mutex
-        enter_item(item);                       // ingresar item al buffer
-        sem_post(mutex);                        // avisarle al mutex que se realizó una acción
-        sem_post(full);                         // avisarle al full que se realizó una acción
-        sleep(1);                               // dormir 1 segundo, simulando un ambiente de producción
+    int item;                                   // Variable para almacenar el ítem producido
+    while (1) {                                 // Bucle infinito para que el productor produzca indefinidamente
+        produce_item(&item);                    // Invocar la función para producir un ítem
+        sem_wait(empty);                        // Esperar a que haya un espacio vacío en el buffer
+        sem_wait(mutex);                        // Adquirir el semáforo mutex para acceso exclusivo al buffer
+        enter_item(item);                       // Ingresar el ítem al buffer
+        sem_post(mutex);                        // Liberar el semáforo mutex
+        sem_post(full);                         // Señalar que hay un nuevo ítem en el buffer
+        sleep(1);                               // Dormir 1 segundo, simulando tiempo de producción
     }
     return NULL;
 }
 
-void* consumer_thread(void *arg)                // función al puntero del item del consumidor
+void* consumer_thread(void *arg)                // Función para el hilo del consumidor
 {
-    int item;                                   // tomar el valor del item como referencia, este valor es el que viene del productor
-    while (1) {                                 // bucle infinito para que el consumidor consuma indefinidamente
-        sem_wait(full);                         // espera a que el semáforo full termine de recibir el aviso del productor
-        sem_wait(mutex);                        // espera a su turno en el mutex
-        remove_item(&item);                     // remueve el item publicado en el buffer por el productor
-        sem_post(mutex);                        // avisa al mutex que removió
-        sem_post(empty);                        // avisa al empty para generar un nuevo espacio vacío en el buffer
-        consume_item(item);                     // consume el item que removió del buffer
-        sleep(1);                               // dormir un segundo
+    int item;                                   // Variable para almacenar el ítem consumido
+    while (1) {                                 // Bucle infinito para que el consumidor consuma indefinidamente
+        sem_wait(full);                         // Esperar a que haya un ítem disponible en el buffer
+        sem_wait(mutex);                        // Adquirir el semáforo mutex para acceso exclusivo al buffer
+        remove_item(&item);                     // Remover el ítem del buffer
+        sem_post(mutex);                        // Liberar el semáforo mutex
+        sem_post(empty);                        // Señalar que se ha liberado un espacio en el buffer
+        consume_item(item);                     // Consumir el ítem removido del buffer
+        sleep(1);                               // Dormir 1 segundo, simulando tiempo de consumo
     }
     return NULL;
 }
 
-int main()                                      // punto de entrada al programa
+int main()                                      // Punto de entrada al programa
 {
-    pthread_t prod, cons;                       // crear dos hilos vinculados, prod y cons
+    pthread_t prod, cons;                       // Crear hilos para productor y consumidor
 
-    mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);  // definir los semáforos, le pone nombre, lo crea si ya no está creado, le asigna los permisos de RWX, inicializa con 1 este semáforo
-    empty = sem_open(SEM_EMPTY, O_CREAT, 0644, N);  // define el semáforo de empty, igual que el mutex pero teniendo un valor de N(10) indicando que el buffer está vacío en sus 10 espacios
-    full = sem_open(SEM_FULL, O_CREAT, 0644, 0);    // define el semáforo de FULL, indicando que no está lleno en sus 10 espacios, o sea que tiene 0 espacios llenos
+    mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);  // Crear o abrir el semáforo mutex, inicializado en 1
+    empty = sem_open(SEM_EMPTY, O_CREAT, 0644, N);  // Crear o abrir el semáforo empty, inicializado en N (indica que el buffer está vacío)
+    full = sem_open(SEM_FULL, O_CREAT, 0644, 0);    // Crear o abrir el semáforo full, inicializado en 0 (indica que el buffer está vacío)
 
-    // si algo falla al momento de crear los semáforos se mostratá "sem_open"
-    if (mutex == SEM_FAILED || empty == SEM_FAILED || full == SEM_FAILED) { 
+    // Verificar si hubo algún error al crear los semáforos
+    if (mutex == SEM_FAILED || empty == SEM_FAILED || full == SEM_FAILED) {
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
 
-    // si algo falla durante la creación del hilo del productor
+    // Crear el hilo del productor
     if (pthread_create(&prod, NULL, producer_thread, NULL) != 0) {
         perror("pthread_create producer");
         exit(EXIT_FAILURE);
     }
-    // si algo falla durante la creación del hilo del consumidor
+    // Crear el hilo del consumidor
     if (pthread_create(&cons, NULL, consumer_thread, NULL) != 0) {
         perror("pthread_create consumer");
         exit(EXIT_FAILURE);
     }
-    
-    pthread_join(prod, NULL);                       // función de espera a que el hilo del productor termine para avanzar con el proceso
-    pthread_join(cons, NULL);                       // función de espera a que el hilo del consumidor termine para avanzar con el proceso
 
-    // finalizar los hilos cuando el proceso termina, esto nunca ocurrirá naturalmente en el programa.
+    pthread_join(prod, NULL);                       // Esperar a que el hilo del productor termine
+    pthread_join(cons, NULL);                       // Esperar a que el hilo del consumidor termine
+
+    // Cerrar y eliminar los semáforos
     sem_close(mutex);
     sem_close(empty);
     sem_close(full);
@@ -115,8 +115,9 @@ int main()                                      // punto de entrada al programa
     sem_unlink(SEM_EMPTY);
     sem_unlink(SEM_FULL);
 
-    return 0;                                       // devolver 0 si el programa se ejecuta sin errores.
+    return 0;                                       // Devolver 0 si el programa se ejecuta sin errores
 }
+
 
 /*
 EL PROBLEMA DE LA SECCION CRITICA
