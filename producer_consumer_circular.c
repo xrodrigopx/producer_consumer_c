@@ -117,16 +117,3 @@ int main()                                      // Punto de entrada al programa
 
     return 0;                                       // Devolver 0 si el programa se ejecuta sin errores
 }
-
-
-/*
-EL PROBLEMA DE LA SECCION CRITICA
-
-1- exclusion mutua: si el proceso P esta sejecutando en la seccion critica, en la misma sección otro proceso no puede entrar a ejecutar. ejemplo: si tenemos una sola bici y somos 10 personas, solo una persona puede andar en ella, los otros debemos esperar
-
-2- progress: si tenemos dos procesos que quieren entrar a la critical al mismo tiempo, solo aquellos procesos que no estén en su remainder serán aquellos habilitados a participar en la desición de si pueden ingresar en la crítical o no. quien puede entrar a la crítical? solo se consideran aquellos procesos que no se estén ejecutando en su remainder. esto no puede posponerse indefinidamente, en algún momento le tiene que tocar a todos. ejemplo: si alguien ya terminó de andar en la bici, tiene que ir al final de la fila para andar denuevo. solo las personas que estén en la fila podrán andar en la bici.
-
-3- bounded waiting: debe existir un límite en el cual los procesos son habilitados a entrar en sus crítical después que hicieron el request para entrar a su crítical o después de que hicieron su entrada. ejemplo: una vez que anduviste en la bici tenes que esperar a que los otros 9 anden en ella para volver a usarla bro
-
-
-*/
