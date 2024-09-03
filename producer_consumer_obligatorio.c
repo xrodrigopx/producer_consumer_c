@@ -5,7 +5,8 @@
 #include <semaphore.h>
 #include <unistd.h>
 
-#define N 10                                    // Definir el tamaño del buffer
+#define N1 50                                   // Definir el tamaño del buffer 1
+#define N2 50                                   // Definir el tamaño del buffer 2
 #define SEM_MUTEX "/sem_mutex"                  // Definir el nombre del semáforo mutex, para la exclusión mutua
 #define SEM_EMPTY "/sem_empty"                  // Definir el nombre del semáforo empty, para el conteo de los espacios vacíos
 #define SEM_FULL "/sem_full"                    // Definir el nombre del semáforo full, para el conteo de los espacios llenos
@@ -14,9 +15,12 @@ sem_t *mutex;                                   // Declarar el puntero para el s
 sem_t *empty;                                   // Declarar el puntero para el semáforo empty
 sem_t *full;                                    // Declarar el puntero para el semáforo full
 
-int buffer[N];                                  // Declarar el buffer con el tamaño N (que es 10)
-int in = 0;                                     // Índice de escritura del buffer, comenzando en 0
-int out = 0;                                    // Índice de lectura del buffer, comenzando en 0
+int BUFFER1[N1];                                // Declarar el buffer con el tamaño del BUFFER1 N1 (que es 50)
+int BUFFER2[N2];                                // Declarar el buffer con el tamaño del BUFFER1 N2 (que es 50)
+int in1 = 0;                                    // Índice de escritura del BUFFER 1, comenzando en 0
+int out1 = 0;                                   // Índice de lectura del BUFFER 1, comenzando en 0
+int in2 = 0;                                    // Índice de escritura del BUFFER 2, comenzando en 0
+int out2 = 0;                                   // Índice de lectura del BUFFER 2, comenzando en 0
 
 void produce_item(int *item);                   // Declarar la función para producir un ítem y asignarlo al puntero de memoria *item
 void enter_item(int item);                      // Declarar la función para ingresar un ítem al buffer
@@ -33,15 +37,15 @@ void produce_item(int *item)                    // Definir la función para prod
 
 void enter_item(int item)                       // Definir la función para ingresar el ítem creado al buffer
 {
-    buffer[in] = item;                          // Insertar el ítem en la posición [in] del buffer
-    in = (in + 1) % N;                          // Incrementar in y usar módulo N para mantenerlo dentro de los límites del buffer
+    BUFFER1[in1] = item;                          // Insertar el ítem en la posición [in] del buffer
+    in1 = (in1 + 1) % N1;                          // Incrementar in y usar módulo N para mantenerlo dentro de los límites del buffer
     printf("Se insertó el ítem: %d\n", item);   // Imprimir el ítem que se insertó
 }
 
 void remove_item(int *item)                     // Definir la función para remover un ítem del buffer
 {
-    *item = buffer[out];                        // Asignar el valor del buffer en la posición [out] al puntero *item
-    out = (out + 1) % N;                        // Incrementar out y usar módulo N para mantenerlo dentro de los límites del buffer
+    *item = BUFFER1[out1];                        // Asignar el valor del buffer en la posición [out] al puntero *item
+    out1 = (out1 + 1) % N1;                        // Incrementar out y usar módulo N para mantenerlo dentro de los límites del buffer
 }
 
 void consume_item(int item)
