@@ -1,123 +1,197 @@
-// inclusión de librerías necesarias
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
 #include <unistd.h>
+#include <fcntl.h>   // Para sem_open
+#include <sys/stat.h> // Para permisos de sem_open
 
-#define N1 50                                   // Definir el tamaño del buffer 1
-#define N2 50                                   // Definir el tamaño del buffer 2
-#define SEM_MUTEX "/sem_mutex"                  // Definir el nombre del semáforo mutex, para la exclusión mutua
-#define SEM_EMPTY "/sem_empty"                  // Definir el nombre del semáforo empty, para el conteo de los espacios vacíos
-#define SEM_FULL "/sem_full"                    // Definir el nombre del semáforo full, para el conteo de los espacios llenos
+#define BUFFER_SIZE 50                           // Definir el tamaño de los buffers circulares
+#define SEM_MUTEX1 "/sem_mutex1"                 // Nombre del semáforo mutex para buffer1
+#define SEM_EMPTY1 "/sem_empty1"                 // Nombre del semáforo empty para buffer1
+#define SEM_FULL1 "/sem_full1"                   // Nombre del semáforo full para buffer1
+#define SEM_MUTEX2 "/sem_mutex2"                 // Nombre del semáforo mutex para buffer2
+#define SEM_EMPTY2 "/sem_empty2"                 // Nombre del semáforo empty para buffer2
+#define SEM_FULL2 "/sem_full2"                   // Nombre del semáforo full para buffer2
 
-sem_t *mutex;                                   // Declarar el puntero para el semáforo mutex
-sem_t *empty;                                   // Declarar el puntero para el semáforo empty
-sem_t *full;                                    // Declarar el puntero para el semáforo full
+// Semáforos para los buffers
+sem_t *mutex1, *empty1, *full1;                  // Semáforos para buffer1
+sem_t *mutex2, *empty2, *full2;                  // Semáforos para buffer2
 
-int BUFFER1[N1];                                // Declarar el buffer con el tamaño del BUFFER1 N1 (que es 50)
-int BUFFER2[N2];                                // Declarar el buffer con el tamaño del BUFFER1 N2 (que es 50)
-int in1 = 0;                                    // Índice de escritura del BUFFER 1, comenzando en 0
-int out1 = 0;                                   // Índice de lectura del BUFFER 1, comenzando en 0
-int in2 = 0;                                    // Índice de escritura del BUFFER 2, comenzando en 0
-int out2 = 0;                                   // Índice de lectura del BUFFER 2, comenzando en 0
+// Buffers circulares y sus índices
+int buffer1[BUFFER_SIZE];                       // Buffer 1
+int buffer2[BUFFER_SIZE];                       // Buffer 2
+int in1 = 0, out1 = 0;                          // Índices para buffer1
+int in2 = 0, out2 = 0;                          // Índices para buffer2
 
-void produce_item(int *item);                   // Declarar la función para producir un ítem y asignarlo al puntero de memoria *item
-void enter_item(int item);                      // Declarar la función para ingresar un ítem al buffer
-void remove_item(int *item);                    // Declarar la función para remover un ítem del buffer y asignarlo al puntero de memoria *item
-void consume_item(int item);                    // Declarar la función para consumir un ítem del buffer
-void* producer_thread(void *arg);               // Declarar la función para el hilo del productor
-void* consumer_thread(void *arg);               // Declarar la función para el hilo del consumidor
-
-void produce_item(int *item)                    // Definir la función para producir un valor que se asignará al puntero de memoria *item
-{
-    static int counter = 0;                     // Variable estática para contar los ítems producidos
-    *item = counter++;                          // Asignar el valor de counter al puntero *item y luego incrementar counter
-}                                               // Por ejemplo, en la primera llamada counter es 0 y se incrementa a 1
-
-void enter_item(int item)                       // Definir la función para ingresar el ítem creado al buffer
-{
-    BUFFER1[in1] = item;                          // Insertar el ítem en la posición [in] del buffer
-    in1 = (in1 + 1) % N1;                          // Incrementar in y usar módulo N para mantenerlo dentro de los límites del buffer
-    printf("Se insertó el ítem: %d\n", item);   // Imprimir el ítem que se insertó
+// Función para generar un ítem aleatorio (simula la generación de datos)
+void produce_item(int *item) {
+    *item = rand() % 100;                        // Genera un número aleatorio entre 0 y 99
 }
 
-void remove_item(int *item)                     // Definir la función para remover un ítem del buffer
-{
-    *item = BUFFER1[out1];                        // Asignar el valor del buffer en la posición [out] al puntero *item
-    out1 = (out1 + 1) % N1;                        // Incrementar out y usar módulo N para mantenerlo dentro de los límites del buffer
+// Función para insertar un ítem en buffer1
+void enter_item_buffer1(int item) {
+    buffer1[in1] = item;                         // Inserta el ítem en la posición 'in' del buffer1
+    printf("P1 insertó el ítem en buffer1: %d\n", item);
+    in1 = (in1 + 1) % BUFFER_SIZE;               // Actualiza el índice 'in' circularmente
 }
 
-void consume_item(int item)
-{
-    printf("Se consumió el ítem: %d\n", item);  // Imprimir el ítem que se consumió
+// Función para remover un ítem del buffer1
+void remove_item_buffer1(int *item) {
+    *item = buffer1[out1];                       // Extrae el ítem de la posición 'out' del buffer1
+    printf("P2 extrajo el ítem de buffer1: %d\n", *item);
+    out1 = (out1 + 1) % BUFFER_SIZE;             // Actualiza el índice 'out' circularmente
 }
 
-void* producer_thread(void *arg)                // Función para el hilo del productor
-{
-    int item;                                   // Variable para almacenar el ítem producido
-    while (1) {                                 // Bucle infinito para que el productor produzca indefinidamente
-        produce_item(&item);                    // Invocar la función para producir un ítem
-        sem_wait(empty);                        // Esperar a que haya un espacio vacío en el buffer
-        sem_wait(mutex);                        // Adquirir el semáforo mutex para acceso exclusivo al buffer
-        enter_item(item);                       // Ingresar el ítem al buffer
-        sem_post(mutex);                        // Liberar el semáforo mutex
-        sem_post(full);                         // Señalar que hay un nuevo ítem en el buffer
-        sleep(1);                               // Dormir 1 segundo, simulando tiempo de producción
+// Función para insertar un ítem en buffer2
+void enter_item_buffer2(int item) {
+    buffer2[in2] = item;                         // Inserta el ítem en la posición 'in' del buffer2
+    printf("P3 insertó la suma en buffer2: %d\n", item);
+    in2 = (in2 + 1) % BUFFER_SIZE;               // Actualiza el índice 'in' circularmente
+}
+
+// Función para remover un ítem del buffer2
+void remove_item_buffer2(int *item) {
+    *item = buffer2[out2];                       // Extrae el ítem de la posición 'out' del buffer2
+    printf("P4 extrajo el ítem de buffer2: %d\n", *item);
+    out2 = (out2 + 1) % BUFFER_SIZE;             // Actualiza el índice 'out' circularmente
+}
+
+// Función para el hilo P1: Genera números aleatorios e inserta en buffer1
+void* P1(void *arg) {
+    int item;
+    while (1) {
+        produce_item(&item);                     // Genera un ítem
+        sem_wait(empty1);                       // Espera a que haya espacio vacío en buffer1
+        sem_wait(mutex1);                       // Adquiere el mutex para buffer1
+        enter_item_buffer1(item);               // Inserta el ítem en buffer1
+        sem_post(mutex1);                       // Libera el mutex
+        sem_post(full1);                        // Señala que hay un nuevo ítem en buffer1
+        sleep(1);                              // Simula tiempo de procesamiento
     }
     return NULL;
 }
 
-void* consumer_thread(void *arg)                // Función para el hilo del consumidor
-{
-    int item;                                   // Variable para almacenar el ítem consumido
-    while (1) {                                 // Bucle infinito para que el consumidor consuma indefinidamente
-        sem_wait(full);                         // Esperar a que haya un ítem disponible en el buffer
-        sem_wait(mutex);                        // Adquirir el semáforo mutex para acceso exclusivo al buffer
-        remove_item(&item);                     // Remover el ítem del buffer
-        sem_post(mutex);                        // Liberar el semáforo mutex
-        sem_post(empty);                        // Señalar que se ha liberado un espacio en el buffer
-        consume_item(item);                     // Consumir el ítem removido del buffer
-        sleep(1);                               // Dormir 1 segundo, simulando tiempo de consumo
+// Función para el hilo P2: Extrae de buffer1, eleva al cuadrado e inserta en buffer1
+void* P2(void *arg) {
+    int item;
+    while (1) {
+        sem_wait(full1);                        // Espera a que haya un ítem disponible en buffer1
+        sem_wait(mutex1);                      // Adquiere el mutex para buffer1
+        remove_item_buffer1(&item);            // Extrae el ítem de buffer1
+        item = item * item;                    // Eleva el ítem al cuadrado
+        sem_post(mutex1);                      // Libera el mutex
+        sem_post(empty1);                      // Señala que hay un espacio vacío en buffer1
+        sem_wait(empty1);                     // Espera a que haya espacio vacío en buffer1
+        sem_wait(mutex1);                      // Adquiere el mutex para buffer1
+        enter_item_buffer1(item);              // Inserta el ítem al cuadrado en buffer1
+        sem_post(mutex1);                      // Libera el mutex
+        sem_post(full1);                       // Señala que hay un nuevo ítem en buffer1
+        sleep(1);                             // Simula tiempo de procesamiento
     }
     return NULL;
 }
 
-int main()                                      // Punto de entrada al programa
-{
-    pthread_t prod, cons;                       // Crear hilos para productor y consumidor
+// Función para el hilo P3: Extrae dos valores de buffer1, los suma e inserta en buffer2
+void* P3(void *arg) {
+    int x, y, sum;
+    while (1) {
+        sem_wait(full1);                        // Espera a que haya un ítem disponible en buffer1
+        sem_wait(mutex1);                      // Adquiere el mutex para buffer1
+        remove_item_buffer1(&x);               // Extrae el primer ítem de buffer1
+        sem_post(mutex1);                      // Libera el mutex
+        sem_post(empty1);                      // Señala que hay un espacio vacío en buffer1
 
-    mutex = sem_open(SEM_MUTEX, O_CREAT, 0644, 1);  // Crear o abrir el semáforo mutex, inicializado en 1
-    empty = sem_open(SEM_EMPTY, O_CREAT, 0644, N);  // Crear o abrir el semáforo empty, inicializado en N (indica que el buffer está vacío)
-    full = sem_open(SEM_FULL, O_CREAT, 0644, 0);    // Crear o abrir el semáforo full, inicializado en 0 (indica que el buffer está vacío)
+        sem_wait(full1);                        // Espera a que haya otro ítem disponible en buffer1
+        sem_wait(mutex1);                      // Adquiere el mutex para buffer1
+        remove_item_buffer1(&y);               // Extrae el segundo ítem de buffer1
+        sem_post(mutex1);                      // Libera el mutex
+        sem_post(empty1);                      // Señala que hay un espacio vacío en buffer1
+
+        sum = x + y;                           // Calcula la suma de los dos ítems
+        printf("P3 sumó los ítems %d y %d, resultado %d\n", x, y, sum);
+
+        sem_wait(empty2);                      // Espera a que haya espacio vacío en buffer2
+        sem_wait(mutex2);                     // Adquiere el mutex para buffer2
+        enter_item_buffer2(sum);              // Inserta la suma en buffer2
+        sem_post(mutex2);                     // Libera el mutex
+        sem_post(full2);                      // Señala que hay un nuevo ítem en buffer2
+        sleep(1);                            // Simula tiempo de procesamiento
+    }
+    return NULL;
+}
+
+// Función para el hilo P4: Extrae de buffer2 e imprime
+void* P4(void *arg) {
+    int item;
+    while (1) {
+        sem_wait(full2);                       // Espera a que haya un ítem disponible en buffer2
+        sem_wait(mutex2);                     // Adquiere el mutex para buffer2
+        remove_item_buffer2(&item);           // Extrae el ítem de buffer2
+        sem_post(mutex2);                     // Libera el mutex
+        sem_post(empty2);                     // Señala que hay un espacio vacío en buffer2
+        printf("P4 imprimió el ítem: %d\n", item); // Imprime el ítem extraído
+        sleep(1);                            // Simula tiempo de procesamiento
+    }
+    return NULL;
+}
+
+int main() {
+    pthread_t threads[4];                     // Array para almacenar los identificadores de los hilos
+
+    // Inicializar semáforos
+    mutex1 = sem_open(SEM_MUTEX1, O_CREAT, 0644, 1);  // Crear o abrir el semáforo mutex para buffer1
+    empty1 = sem_open(SEM_EMPTY1, O_CREAT, 0644, BUFFER_SIZE);  // Crear o abrir el semáforo empty para buffer1
+    full1 = sem_open(SEM_FULL1, O_CREAT, 0644, 0);    // Crear o abrir el semáforo full para buffer1
+
+    mutex2 = sem_open(SEM_MUTEX2, O_CREAT, 0644, 1);  // Crear o abrir el semáforo mutex para buffer2
+    empty2 = sem_open(SEM_EMPTY2, O_CREAT, 0644, BUFFER_SIZE);  // Crear o abrir el semáforo empty para buffer2
+    full2 = sem_open(SEM_FULL2, O_CREAT, 0644, 0);    // Crear o abrir el semáforo full para buffer2
 
     // Verificar si hubo algún error al crear los semáforos
-    if (mutex == SEM_FAILED || empty == SEM_FAILED || full == SEM_FAILED) {
+    if (mutex1 == SEM_FAILED || empty1 == SEM_FAILED || full1 == SEM_FAILED ||
+        mutex2 == SEM_FAILED || empty2 == SEM_FAILED || full2 == SEM_FAILED) {
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
 
-    // Crear el hilo del productor
-    if (pthread_create(&prod, NULL, producer_thread, NULL) != 0) {
-        perror("pthread_create producer");
+    // Crear los hilos para los procesos P1, P2, P3, y P4
+    if (pthread_create(&threads[0], NULL, P1, NULL) != 0) {
+        perror("pthread_create P1");
         exit(EXIT_FAILURE);
     }
-    // Crear el hilo del consumidor
-    if (pthread_create(&cons, NULL, consumer_thread, NULL) != 0) {
-        perror("pthread_create consumer");
+    if (pthread_create(&threads[1], NULL, P2, NULL) != 0) {
+        perror("pthread_create P2");
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_create(&threads[2], NULL, P3, NULL) != 0) {
+        perror("pthread_create P3");
+        exit(EXIT_FAILURE);
+    }
+    if (pthread_create(&threads[3], NULL, P4, NULL) != 0) {
+        perror("pthread_create P4");
         exit(EXIT_FAILURE);
     }
 
-    pthread_join(prod, NULL);                       // Esperar a que el hilo del productor termine
-    pthread_join(cons, NULL);                       // Esperar a que el hilo del consumidor termine
+    // Esperar a que todos los hilos terminen (en realidad, estos hilos corren indefinidamente)
+    for (int i = 0; i < 4; i++) {
+        pthread_join(threads[i], NULL);
+    }
 
     // Cerrar y eliminar los semáforos
-    sem_close(mutex);
-    sem_close(empty);
-    sem_close(full);
-    sem_unlink(SEM_MUTEX);
-    sem_unlink(SEM_EMPTY);
-    sem_unlink(SEM_FULL);
+    sem_close(mutex1);
+    sem_close(empty1);
+    sem_close(full1);
+    sem_unlink(SEM_MUTEX1);
+    sem_unlink(SEM_EMPTY1);
+    sem_unlink(SEM_FULL1);
 
-    return 0;                                       // Devolver 0 si el programa se ejecuta sin errores
+    sem_close(mutex2);
+    sem_close(empty2);
+    sem_close(full2);
+    sem_unlink(SEM_MUTEX2);
+    sem_unlink(SEM_EMPTY2);
+    sem_unlink(SEM_FULL2);
+
+    return 0;  // Finaliza el programa
 }
