@@ -135,31 +135,31 @@ int main() {
         exit(EXIT_FAILURE);
     }
     // los fork
-    pid_t pid1 = fork();
-    if (pid1 == 0) {
-        P1(shared_data, mutex1, empty1, full1);
-        exit(0);
+    pid_t pid1 = fork();                                                              // fork del P1
+    if (pid1 == 0) {                                                                  // si el pid del fork es 0
+        P1(shared_data, mutex1, empty1, full1);                                       // se ejecuta P1
+        exit(0);                                                                      // finaliza el fork una vez terminado P1
     }
 
-    pid_t pid2 = fork();
+    pid_t pid2 = fork();                                                              // fork del P2, igual que con P1
     if (pid2 == 0) {
-        P2(shared_data, mutex1, empty1, full1);
+        P2(shared_data, mutex1, empty1, full1);                                       
         exit(0);
     }
 
-    pid_t pid3 = fork();
+    pid_t pid3 = fork();                                                              // fork de P3
     if (pid3 == 0) {
         P3(shared_data, mutex1, empty1, full1, mutex2, empty2, full2);
         exit(0);
     }
 
-    pid_t pid4 = fork();
+    pid_t pid4 = fork();                                                             // fork de P4
     if (pid4 == 0) {
         P4(shared_data, mutex2, empty2, full2);
         exit(0);
     }
 
-    // esperar a que todos los procesos hijos terminen
+    // esperar a que todos los procesos hijos (los fork) terminen
     wait(NULL);
     wait(NULL);
     wait(NULL);
@@ -191,6 +191,10 @@ información de los semáforos: http://www.csc.villanova.edu/~mdamian/threads/po
 información del problema: https://medium.com/@sohamshah456/producer-consumer-programming-with-c-d0d47b8f103f
 información de multiprocesos: https://mmlind.github.io/post/2020-10-05-how_to_simultaneously_write_to_shared_memory_with_multiple_processes/
 informacion del problema con esta solucion: https://youtu.be/uHtzOFwgD74?si=M3tfAGIXeUQtz2-X
+información sobre los fork: https://www.youtube.com/watch?v=cex9XrZCU14
+https://www.youtube.com/watch?v=xVSPv-9x3gk
+https://thelinuxcode.com/c_fork_system_call/
+
 el desafio de mapear la memoria y los procesos:
 https://stackoverflow.com/questions/8103560/run-two-c-programs-simultaneously-sharing-memory-how
 https://stackoverflow.com/questions/1664519/creating-accessing-shared-memory-in-c
