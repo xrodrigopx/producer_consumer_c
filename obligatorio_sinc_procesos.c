@@ -72,12 +72,14 @@ void P3(shared_data_t *shared_data, sem_t *mutex1, sem_t *empty1, sem_t *full1, 
         sem_wait(full1);                                                              // Espera a que haya un ítem disponible en buffer1
         sem_wait(mutex1);                                                             // espera el mutex
         x = shared_data->buffer1[shared_data->out1];                                  // Extrae el primer ítem de buffer1
+        printf("P3 extrajo el primer ítem de buffer1: %d\n", x);                      // mensaje para llevar registro
         shared_data->out1 = (shared_data->out1 + 1) % BUFFER_SIZE;                    // se accede a out1 y agrega 1, sin escapar del tamaño del buffer
         sem_post(mutex1);                                                             // Libera el mutex
         sem_post(empty1);                                                             // señala que hay un espacio vacío en buffer1
         sem_wait(full1);                                                              // Espera a que haya otro ítem disponible en buffer1
         sem_wait(mutex1);                                                             // adquiere el mutex
         y = shared_data->buffer1[shared_data->out1];                                  // Extrae el segundo ítem de buffer1
+        printf("P3 extrajo el segundo ítem de buffer1: %d\n", y);                     // mensaje para llevar registro
         shared_data->out1 = (shared_data->out1 + 1) % BUFFER_SIZE;                    // actualiza el indice de extraccion del buffer 1
         sem_post(mutex1);                                                             // Libera el mutex
         sem_post(empty1);                                                             // señala que hay un espacio vacío en buffer1
