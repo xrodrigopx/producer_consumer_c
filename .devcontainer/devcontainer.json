@@ -1,0 +1,13 @@
+{
+    "name": "Alpine C Development",
+    "image": "mcr.microsoft.com/devcontainers/base:alpine-3.20",
+    
+    // Instalar herramientas necesarias para el desarrollo en C después de crear el contenedor
+    "postCreateCommand": "apk add --no-cache gcc musl-dev make gdb git",
+
+    // Otras configuraciones opcionales
+    // "features": {},
+    // "forwardPorts": [],
+    // "customizations": {},
+    // "remoteUser": "vscode"
+}
