@@ -134,7 +134,7 @@ int main() {
         perror("sem_open");
         exit(EXIT_FAILURE);
     }
-
+    // los fork
     pid_t pid1 = fork();
     if (pid1 == 0) {
         P1(shared_data, mutex1, empty1, full1);
