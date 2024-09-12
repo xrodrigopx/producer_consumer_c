@@ -30,7 +30,8 @@ typedef struct {
 void P1(shared_data_t *shared_data, sem_t *mutex1, sem_t *empty1, sem_t *full1) {
     int item;
     while (1) {
-        item = 15;                                                           // genera un item aleatorio entre 0 y 99
+        item = rand () % 100;                                                          // genera un item aleatorio entre 0 y 99
+     // item = 2:                                                                      // debuggear para este numero
         sem_wait(empty1);                                                              // revisa que haya espacio vacío en el buffer1
         sem_wait(mutex1);                                                              // adquiere el mutex para acceso exclusivo a buffer1
         shared_data->buffer1[shared_data->in1] = item;                                 // inserta el ítem en buffer1
@@ -51,11 +52,11 @@ void P2(shared_data_t *shared_data, sem_t *mutex1, sem_t *empty1, sem_t *full1) 
         item = shared_data->buffer1[shared_data->out1];                               // Extrae el ítem de buffer1
         printf("P2 extrajo el ítem de buffer1: %d\n", item);                          // mensaje para llevar registro
         shared_data->out1 = (shared_data->out1 + 1) % BUFFER_SIZE;                    // Actualiza el índice de extracción
-       // sem_post(mutex1);                                                             // Libera el mutex
-       // sem_post(empty1);                                                             // señala que hay un espacio vacío en buffer1
+       // sem_post(mutex1);                                                           // prueba
+       // sem_post(empty1);                                                           // prueba
         item = item * item;                                                           // Eleva el ítem al cuadrado
-        //sem_wait(empty1);                                                             // Espera a que haya espacio vacío en buffer1 para el ítem al cuadrado
-        //sem_wait(mutex1);                                                             // adquiere el mutex
+        //sem_wait(empty1);                                                           // prueba
+        //sem_wait(mutex1);                                                           // prueba
         shared_data->buffer1[shared_data->in1] = item;                                // Inserta el item al cuadrado en buffer1
         printf("P2 insertó el ítem al cuadrado en buffer1: %d\n", item);              // mensaje para llevar registro
         shared_data->in1 = (shared_data->in1 + 1) % BUFFER_SIZE;                      // Actualiza el índice de inserción
@@ -145,7 +146,7 @@ int main() {
 
     pid_t pid2 = fork();                                                              // fork del P2, igual que con P1
     if (pid2 == 0) {
-        P2(shared_data, mutex1, empty1, full1);                                       
+        P2(shared_data, mutex1, empty1, full1);
         exit(0);
     }
 
