@@ -124,10 +124,12 @@ int main() {
     shared_data->in2 = 0;                                                             // inicializar el indice 2 de insercion
     shared_data->out2 = 0;                                                            // inicializar el indice 1 de extracción
 
+    // inicializar los semaforos para el buffer 1
     sem_t *mutex1 = sem_open(SEM_MUTEX1, O_CREAT, 0644, 1);                           // inicializar el emáforo mutex para buffer1
     sem_t *empty1 = sem_open(SEM_EMPTY1, O_CREAT, 0644, BUFFER_SIZE);                 // semaforo que cuenta los espacios vacíos en buffer1
     sem_t *full1 = sem_open(SEM_FULL1, O_CREAT, 0644, 0);                             // Semáforo que cuenta los ítems llenos en buffer1
 
+    // inicializar los semaforos para el buffer 2
     sem_t *mutex2 = sem_open(SEM_MUTEX2, O_CREAT, 0644, 1);                           // semáforo mutex para buffer2, igual que con el 1 solo que para el 2
     sem_t *empty2 = sem_open(SEM_EMPTY2, O_CREAT, 0644, BUFFER_SIZE);                 // smáforo que cuenta los espacios vacíos en buffer2, igual que con el 1 solo que para el 2
     sem_t *full2 = sem_open(SEM_FULL2, O_CREAT, 0644, 0);                             // semaforo que cuenta los ítems llenos en buffer2, lo mismo que para el 1 solo que para el 2
