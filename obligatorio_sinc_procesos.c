@@ -119,6 +119,7 @@ int main() {
     // mapear la memoria, sino los punteros no tendrían acceso a la memoria compartida de los buffer o los procesos
     shared_data_t *shared_data = mmap(NULL, sizeof(shared_data_t), PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
 
+    // inicializar los indices
     shared_data->in1 = 0;                                                             // inicializar el indice 1 de insercion
     shared_data->out1 = 0;                                                            // inicializar el indice 1 de extracción
     shared_data->in2 = 0;                                                             // inicializar el indice 2 de insercion
@@ -171,21 +172,31 @@ int main() {
     wait(NULL);
 
     // eliminar la memoria compartida y cerrar los semáforos cuando termina el programa (si es que termina)
+
+    // borrar la memoria
     shm_unlink("/shm");
+
+    // cerrar los sem para b1
     sem_close(mutex1);
     sem_close(empty1);
     sem_close(full1);
+
+    // borrar los sem para b1
     sem_unlink(SEM_MUTEX1);
     sem_unlink(SEM_EMPTY1);
     sem_unlink(SEM_FULL1);
 
+    // cerrar los sem para b2
     sem_close(mutex2);
     sem_close(empty2);
     sem_close(full2);
+
+    // borrar los sem para b2
     sem_unlink(SEM_MUTEX2);
     sem_unlink(SEM_EMPTY2);
     sem_unlink(SEM_FULL2);
 
+    // devuelve 0 si se ejecutó bien
     return 0;
 }
 
