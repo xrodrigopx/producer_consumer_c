@@ -1,4 +1,4 @@
-# Como usar esto
+# Ejecutar desde Docker
 
 ## Paso 1: Construir la imagen
 ```bash
